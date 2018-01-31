@@ -9,14 +9,18 @@ export class AgmDirection implements OnChanges, OnInit {
 
   @Input() origin: { lat: Number, lng: Number };
   @Input() destination: { lat: Number, lng: Number };
-  @Input() waypoints: Object = [];
+  @Input() waypoints: any = [];
   @Input() travelMode: string = 'DRIVING';
   @Input() optimizeWaypoints: boolean = true;
   @Input() visible: boolean = true;
-
+  @Input() customIcon: {
+    origin: string,
+    destination: string,
+    waypoint: string
+  } = null;
   public directionsService = new google.maps.DirectionsService;
   public directionsDisplay: any = undefined;
-
+  markers = new Array();
   constructor(
     private gmapsApi: GoogleMapsAPIWrapper
   ) { }
@@ -26,31 +30,57 @@ export class AgmDirection implements OnChanges, OnInit {
   }
 
   ngOnChanges() {
-
-    /**
-     * When visible is false then remove the direction layer
-     */
-    if (!this.visible) {
-      if (this.directionsDisplay) {
-        this.directionsDisplay.setMap(null);
-        this.directionsDisplay = undefined;
-      } else {
-        this.directionDraw();
-      } 
+    if (this.directionsDisplay && !this.visible) {
+      this.directionsDisplay.setMap(null);
+      this.directionsDisplay = undefined;
+      while (this.markers.length) {
+        this.markers.pop().setMap(null);
+      }
+    } else {
+      this.directionDraw();
     }
+  }
 
+  private treatCustomIcons(map) {
+    if (typeof this.directionsDisplay === 'undefined') {
+      return;
+    }
+    if (this.customIcon) {
+      this.directionsDisplay.setOptions({
+        suppressMarkers : true //remove default markers
+      });
+      let locations = [this.origin, this.destination].concat(this.waypoints.map(o => o.location));
+      locations.forEach((o, i) => {
+        let marker = new google.maps.Marker({
+          position: o,
+          map: map,
+          icon: {
+            url:  (i === 0 ? this.customIcon.origin : (i === 1 ? this.customIcon.destination : this.customIcon.waypoint)) || null,
+            scaledSize: new google.maps.Size(32, 32)
+          }
+        });
+        this.markers.push(marker);
+      });
+    }
   }
 
   /**
    * This event is fired when the user creating or updating this direction
    */
   private directionDraw() {
+    if (!this.visible) {
+      return;
+    }
     this.gmapsApi.getNativeMap().then(map => {
 
       if (typeof this.directionsDisplay === 'undefined') {
         this.directionsDisplay = new google.maps.DirectionsRenderer;
         this.directionsDisplay.setMap(map);
+        this.treatCustomIcons(map);
+      } else {
+        this.directionsDisplay.setMap(null);
       }
+
 
       this.directionsService.route({
         origin: this.origin,
@@ -69,4 +99,3 @@ export class AgmDirection implements OnChanges, OnInit {
   }
 
 }
-
