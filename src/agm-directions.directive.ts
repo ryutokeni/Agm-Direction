@@ -31,10 +31,12 @@ export class AgmDirection implements OnChanges, OnInit {
      * When visible is false then remove the direction layer
      */
     if (!this.visible) {
-      this.directionsDisplay.setMap(null);
-      this.directionsDisplay = undefined;
-    } else {
-      this.directionDraw();
+      if (this.directionsDisplay) {
+        this.directionsDisplay.setMap(null);
+        this.directionsDisplay = undefined;
+      } else {
+        this.directionDraw();
+      } 
     }
 
   }
@@ -43,8 +45,6 @@ export class AgmDirection implements OnChanges, OnInit {
    * This event is fired when the user creating or updating this direction
    */
   private directionDraw() {
-
-
     this.gmapsApi.getNativeMap().then(map => {
 
       if (typeof this.directionsDisplay === 'undefined') {
